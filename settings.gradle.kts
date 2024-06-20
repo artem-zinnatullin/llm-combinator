@@ -1,4 +1,4 @@
-rootProject.name = "microservices"
+rootProject.name = "llm-combinator"
 
 buildCache {
     local {
@@ -18,4 +18,5 @@ include(":libs:homeassistant-http")
 include(":libs:homeassistant-mqtt")
 include(":libs:llm-cameras")
 include(":libs:ollama")
+include(":libs:yaml-config")
 include(":llm-combinator")

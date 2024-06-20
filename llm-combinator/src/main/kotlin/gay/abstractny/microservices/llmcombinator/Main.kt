@@ -18,11 +18,13 @@ import gay.abstractny.libs.homeassistant_http.HomeAssistantHttpService
 import gay.abstractny.libs.llmcameras.BinarySensor
 import gay.abstractny.libs.llmcameras.LLMCamerasService
 import gay.abstractny.libs.ollama.OllamaService
+import gay.abstractny.libs.yamlconfig.parseYamlConfig
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.oshai.kotlinlogging.Level
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import java.io.File
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 fun main(args: Array<String>) {
@@ -39,46 +41,42 @@ class MainCommand : CliktCommand(help = "Run the main code") {
         }
     }
 
-    val ollamaUrl by option("--ollama-url")
-        .convert { it.toHttpUrl() }
+    val yamlConfig by option("--yaml-config")
+        .convert { parseYamlConfig(File(it).readText()) }
         .required()
 
-    val homeAssistantUrl by option("--homeassistant-url")
-        .convert { it.toHttpUrl() }
-        .required()
-
-    val homeAssistantToken by option("--homeassistant-token", help = "Pass as ${envVarPrefix}_HOMEASSISTANT_TOKEN")
-        .validate { require(it.isNotEmpty()) }
-
-    val homeAssistantUpdateSensors by option(
-        "--homeassistant-update-sensors",
-        help = "Useful for debugging to turn off locally"
+    val homeAssistantToken by option(
+        "--homeassistant-token",
+        help = "Pass as ${envVarPrefix}_HOMEASSISTANT_TOKEN, see https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token"
     )
-        .convert { it.toBoolean() }
-        .default(true)
-
-    val frigateUrls by option("--frigate-urls")
-        .transformAll { urls -> urls.flatMap { it.split(",").map { it.toHttpUrl() } } }
         .validate { require(it.isNotEmpty()) }
 
-    val mqttServer by option("--mqtt-server", help = "ip:port")
-        .validate { require(it.contains(":")) }
-
-    val mqttUsername by option("--mqtt-username")
+    val mqttUsername by option("--mqtt-username", help = "Pass as ${envVarPrefix}_MQTT_USERNAME")
 
     val mqttPassword by option("--mqtt-password", help = "Pass as ${envVarPrefix}_MQTT_PASSWORD")
 
     override fun run() {
         val logger = KotlinLogging.logger("main")
 
-        val frigateServers = frigateUrls.map { FrigateServer(it) }.toSet()
+        logger.info { "Parsed configuration: $yamlConfig" }
+
+        val frigateServers = yamlConfig.frigate.servers.map { FrigateServer(it.url.toHttpUrl()) }.toSet()
         val frigateService = FrigateService(debug = false)
         val frigateMqttService =
-            FrigateMqttService(mqttServer = mqttServer!!, mqttUsername = mqttUsername!!, mqttPassword = mqttPassword!!)
-        val ollamaService = OllamaService(ollamaUrl, Level.INFO)
+            FrigateMqttService(
+                mqttHost = yamlConfig.mqtt.host,
+                mqttPort = yamlConfig.mqtt.port,
+                mqttUsername = mqttUsername!!,
+                mqttPassword = mqttPassword!!
+            )
+        val ollamaService = OllamaService(yamlConfig.ollama.url.toHttpUrl(), Level.INFO)
         val llmCamerasService = LLMCamerasService(frigateService, frigateServers, frigateMqttService, ollamaService)
         val homeAssistantHttpService =
-            HomeAssistantHttpService(homeAssistantUrl, token = homeAssistantToken!!, debug = false)
+            HomeAssistantHttpService(
+                yamlConfig.homeAssistant.url.toHttpUrl(),
+                token = homeAssistantToken!!,
+                debug = false
+            )
 
         llmCamerasService
             .testCamUpdates()
@@ -87,7 +85,7 @@ class MainCommand : CliktCommand(help = "Run the main code") {
                 Completable
                     .merge(binarySensorsUpdate
                         .map { binarySensor ->
-                            if (homeAssistantUpdateSensors) {
+                            if (yamlConfig.homeAssistant.updateSensors) {
                                 homeAssistantHttpService.createOrUpdateBinarySensor(
                                     deviceName = binarySensor.deviceName,
                                     friendlyName = binarySensor.friendlyName,
