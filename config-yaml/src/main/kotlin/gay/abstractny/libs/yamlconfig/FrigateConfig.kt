@@ -8,6 +8,9 @@ data class FrigateConfig(
     @SerialName("servers")
     val servers: List<FrigateServerConfig>,
 
+    @SerialName("default_llm_model")
+    val defaultLLMModel: String? = null,
+
     @SerialName("cameras")
     val cameras: List<FrigateCameraConfig>,
 )

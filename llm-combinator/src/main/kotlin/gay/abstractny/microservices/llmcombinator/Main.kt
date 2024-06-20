@@ -70,7 +70,7 @@ class MainCommand : CliktCommand(help = "Run the main code") {
                 mqttPassword = mqttPassword!!
             )
         val ollamaService = OllamaService(yamlConfig.ollama.url.toHttpUrl(), Level.INFO)
-        val llmCamerasService = LLMCamerasService(frigateService, frigateServers, frigateMqttService, ollamaService)
+        val llmCamerasService = LLMCamerasService(frigateService, frigateServers, frigateMqttService, ollamaService, yamlConfig.frigate.cameras)
         val homeAssistantHttpService =
             HomeAssistantHttpService(
                 yamlConfig.homeAssistant.url.toHttpUrl(),
@@ -79,7 +79,7 @@ class MainCommand : CliktCommand(help = "Run the main code") {
             )
 
         llmCamerasService
-            .testCamUpdates()
+            .camerasUpdates()
             .doOnNext { logger.info { ("Update: $it") } }
             .flatMapCompletable { binarySensorsUpdate ->
                 Completable

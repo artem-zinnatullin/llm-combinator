@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     api(libs.rxjava)
+    api(project(":config-yaml"))
     api(project(":frigate-http"))
     api(project(":frigate-mqtt"))
     api(project(":ollama-http"))
