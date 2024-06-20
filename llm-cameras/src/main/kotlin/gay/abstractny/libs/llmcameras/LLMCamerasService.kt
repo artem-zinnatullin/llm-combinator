@@ -6,41 +6,68 @@ import gay.abstractny.libs.frigate.FrigateCamera
 import gay.abstractny.libs.frigate.FrigateServer
 import gay.abstractny.libs.frigate.FrigateService
 import gay.abstractny.libs.frigate_mqtt.FrigateMqttService
-import gay.abstractny.libs.llmcameras.responses.TestCameraLLMResponse
 import gay.abstractny.libs.ollama.OllamaGenerateRequest
 import gay.abstractny.libs.ollama.OllamaService
+import gay.abstractny.libs.yamlconfig.FrigateCameraConfig
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit.SECONDS
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import kotlin.reflect.KClass
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.primaryConstructor
+import kotlin.random.Random
 
 class LLMCamerasService(
     private val frigateService: FrigateService,
-    frigateServers: Set<FrigateServer>,
+    private val frigateServers: Set<FrigateServer>,
     private val frigateMqttService: FrigateMqttService,
     private val ollamaService: OllamaService,
+    private val frigateCamerasConfig: List<FrigateCameraConfig>,
 ) {
 
     private val frigateCameras = frigateService
         .cameras(frigateServers)
         .cache()
 
+    fun camerasUpdates(): Flowable<Set<BinarySensor>> {
+        return Flowable.merge(frigateCamerasConfig.map { cameraUpdates(it) })
+    }
 
-    private val testCam = frigateCameras
-        .map { it.single { camera -> camera.name == "test_cam" } }
-        .cache()
+    private fun cameraUpdates(frigateCameraConfig: FrigateCameraConfig): Flowable<Set<BinarySensor>> {
+        return frigateCameras
+            .map { cameras ->
+                cameras
+                    .singleOrNull { it.name == frigateCameraConfig.name }
+                    ?: error("Cannot find frigate camera with name ${frigateCameraConfig.name} among cameras through all frigate servers $frigateServers: ${cameras.map { it.name }}")
+            }
+            .toFlowable()
+            .flatMap { camera ->
+                val signals = mutableListOf<Flowable<*>>()
 
-    private inline fun <reified T : Any> cameraQuery(
+                signals += Flowable.interval(
+                    Random.nextLong(frigateCamerasConfig.size.toLong()),
+                    frigateCameraConfig.periodicUpdateSec.toLong(),
+                    SECONDS
+                )
+
+                if (frigateCameraConfig.motionUpdates.enabled) {
+                    signals += cameraMotionUpdates(camera)
+                }
+
+                Flowable
+                    .merge(signals)
+                    .map { camera }
+            }
+            .flatMapSingle { camera ->
+                cameraQuery(camera, frigateCameraConfig)
+            }
+    }
+
+    private fun cameraQuery(
         camera: FrigateCamera,
-        model: String,
+        frigateCameraConfig: FrigateCameraConfig,
     ): Single<Set<BinarySensor>> {
         return frigateService
             .latestJpg(camera)
@@ -49,40 +76,22 @@ class LLMCamerasService(
                 ollamaService
                     .generate(
                         OllamaGenerateRequest(
-                            model = model,
-                            prompt = preparePrompt<T>(),
+                            model = frigateCameraConfig.llmPrompt.model,
+                            prompt = preparePrompt(frigateCameraConfig),
                             imagesBase64 = listOf(jpegBase64),
                             format = "json",
                         )
                     )
-                    .map { Json.decodeFromString<T>(it.response) }
+                    .map { Json.decodeFromString<JsonElement>(it.response) }
                     .doOnSuccess { println("$it") }
                     .map { cameraLLMResponse -> cameraResponseToSensors(camera, cameraLLMResponse) }
             }
     }
 
-    private fun testCameraQuery(): Single<Set<BinarySensor>> {
-        return testCam
-            .flatMap { camera ->
-                cameraQuery<TestCameraLLMResponse>(
-                    camera,
-                    model = "llava-llama3:8b",
-                )
-            }
-    }
-
-    fun testCamUpdates(): Flowable<Set<BinarySensor>> {
-        return Flowable
-            .merge(
-                Flowable.interval(2, 30, SECONDS),
-                cameraMotionUpdates(testCam),
-            )
-            .flatMapSingle { testCameraQuery() }
-    }
-
-    private fun cameraMotionUpdates(lazyCamera: Single<FrigateCamera>): Flowable<Any> {
-        return lazyCamera
-            .flatMap { camera -> frigateService.config(camera.server).map { it to camera } }
+    private fun cameraMotionUpdates(camera: FrigateCamera): Flowable<Any> {
+        return frigateService
+            .config(camera.server)
+            .map { it to camera }
             .toFlowable()
             .flatMap { (frigateServerConfig, camera) ->
                 frigateMqttService.frigateCameraMotionUpdates(
@@ -92,49 +101,23 @@ class LLMCamerasService(
             }
     }
 
-    private val cachePrompt = ConcurrentHashMap<KClass<*>, String>()
+    private val cachePrompt = ConcurrentHashMap<FrigateCameraConfig, String>()
 
-    private inline fun <reified T : Any> preparePrompt(): String {
-        return cachePrompt.getOrPut(T::class) { preparePromptImpl<T>() }
+    private fun preparePrompt(frigateCameraConfig: FrigateCameraConfig): String {
+        return cachePrompt.getOrPut(frigateCameraConfig) { preparePromptImpl(frigateCameraConfig) }
     }
 
-    private inline fun <reified T : Any> preparePromptImpl(): String {
-        val propertyPrompt = T::class.declaredMemberProperties
-            .associateWith { property ->
-                val prompt = property
-                    .findAnnotation<LLMPrompt>()
-                    ?.prompt
-                    ?: error("${T::class} property $property does not have @LLMPromt!")
-
-                prompt
-            }
-
-        val propertyJsonName = T::class.declaredMemberProperties
-            .associateWith { property ->
-                val prompt = property
-                    .findAnnotation<SerialName>()
-                    ?.value
-                    ?: error("${T::class} property $property does not have @SerialName!")
-
-                prompt
-            }
-
-        val propertyJsonType = T::class.declaredMemberProperties
-            .associateWith { property ->
-                property.returnType.classifier!!.toString().substringAfterLast(".")
-            }
-
-        // To read properties in exact order they're declared we need to rely on constructor.
-        return T::class
-            .primaryConstructor!!
-            .parameters
-            .map { constructorParameter -> T::class.declaredMemberProperties.single { it.name == constructorParameter.name } }
+    private fun preparePromptImpl(frigateCameraConfig: FrigateCameraConfig): String {
+        // Properties must be put in exact order they're declared otherwise prompt might become unstable.
+        return frigateCameraConfig
+            .llmPrompt
+            .properties
             .joinToString(
-                prefix = "You are image analyzer that replies ONLY in VALID JSON with following schema: {",
-                postfix = "}. For each JSON property use its name from schema and compute its value as requested type.",
+                prefix = frigateCameraConfig.llmPrompt.prefix,
+                postfix = frigateCameraConfig.llmPrompt.postfix,
                 separator = ", ",
             ) { property ->
-                "\"${propertyJsonName[property]}\": \"(${propertyJsonType[property]}) ${propertyPrompt[property]}\""
+                "\"${property.name}\": \"(${property.type}) ${property.prompt}\""
             }
     }
 }
