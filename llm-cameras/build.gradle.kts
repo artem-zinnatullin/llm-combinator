@@ -5,11 +5,13 @@ plugins {
 
 dependencies {
     api(libs.rxjava)
-    api(project(":libs:frigate"))
+    api(project(":frigate-http"))
+    api(project(":frigate-mqtt"))
+    api(project(":ollama-http"))
 }
 
 dependencies {
-    implementation(libs.rxjavabridge)
-    implementation(libs.hivemq.mqtt.client)
+    implementation(libs.logging)
     implementation(libs.kotlinx.serialization.json)
+    implementation(kotlin("reflect"))
 }

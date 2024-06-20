@@ -15,12 +15,12 @@ dependencies {
 }
 
 dependencies {
-    implementation(project(":libs:frigate"))
-    implementation(project(":libs:frigate-mqtt"))
-    implementation(project(":libs:homeassistant-http"))
-    implementation(project(":libs:llm-cameras"))
-    implementation(project(":libs:ollama"))
-    implementation(project(":libs:yaml-config"))
+    implementation(project(":config-yaml"))
+    implementation(project(":frigate-http"))
+    implementation(project(":frigate-mqtt"))
+    implementation(project(":homeassistant-http"))
+    implementation(project(":llm-cameras"))
+    implementation(project(":ollama-http"))
 }
 
 application {

@@ -12,11 +12,11 @@ dependencyResolutionManagement {
     }
 }
 
-include(":libs:frigate")
-include(":libs:frigate-mqtt")
-include(":libs:homeassistant-http")
-include(":libs:homeassistant-mqtt")
-include(":libs:llm-cameras")
-include(":libs:ollama")
-include(":libs:yaml-config")
+include(":config-yaml")
+include(":frigate-http")
+include(":frigate-mqtt")
+include(":homeassistant-http")
+include(":homeassistant-mqtt")
+include(":llm-cameras")
 include(":llm-combinator")
+include(":ollama-http")
