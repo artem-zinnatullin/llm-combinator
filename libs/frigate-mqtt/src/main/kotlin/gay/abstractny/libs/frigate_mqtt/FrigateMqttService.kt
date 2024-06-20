@@ -9,7 +9,7 @@ import hu.akarnokd.rxjava3.bridge.RxJavaBridge
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 
-class FrigateMqttService(mqttServer: String, mqttUsername: String, mqttPassword: String) {
+class FrigateMqttService(mqttHost: String, mqttPort: Int, mqttUsername: String, mqttPassword: String) {
 
     private val mqttClient = Mqtt5Client
         .builder()
@@ -19,8 +19,8 @@ class FrigateMqttService(mqttServer: String, mqttUsername: String, mqttPassword:
                 .password(mqttPassword.toByteArray())
                 .build()
         )
-        .serverHost(mqttServer.split(":").first())
-        .serverPort(mqttServer.split(":").last().toInt())
+        .serverHost(mqttHost)
+        .serverPort(mqttPort)
         .buildRx();
 
     private val connect: Single<Mqtt5ConnAck> = mqttClient

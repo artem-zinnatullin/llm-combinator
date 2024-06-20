@@ -5,10 +5,6 @@ plugins {
     id("com.github.johnrengelman.shadow") version libs.versions.shadow
 }
 
-application {
-    mainClass = "gay.abstractny.microservices.llmcombinator.Main"
-}
-
 dependencies {
     implementation(libs.clikt)
     implementation(libs.okhttp)
@@ -24,6 +20,11 @@ dependencies {
     implementation(project(":libs:homeassistant-http"))
     implementation(project(":libs:llm-cameras"))
     implementation(project(":libs:ollama"))
+    implementation(project(":libs:yaml-config"))
+}
+
+application {
+    mainClass = "gay.abstractny.microservices.llmcombinator.Main"
 }
 
 val javaComponent = components["java"] as AdhocComponentWithVariants
