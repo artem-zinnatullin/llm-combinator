@@ -1,6 +1,6 @@
 package gay.abstractny.libs.yamlconfig
 
-import gay.abstractny.libs.yamlconfig.FrigateCameraLLMPromptPropertyConfig.PropertyType.Boolean
+import gay.abstractny.libs.yamlconfig.FrigateCameraLLMPromptPropertyConfig.PropertyType.BOOLEAN
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -27,20 +27,20 @@ frigate:
     - url: http://myfrigate2:1004/
   cameras:
     - name: my_cam_1
-      llm_prompt:
-        model: "llava-llama3:8b-1"
-        properties:
-          - name: object_1_present
-            prompt: Analyze the image for presence of object 1
-            type: boolean
+      llm_prompts:
+        - model: "llava-llama3:8b-1"
+          properties:
+            - name: object_1_present
+              prompt: Analyze the image for presence of object 1
+              type: boolean
       periodic_update_sec: 45
     - name: my_cam_2
-      llm_prompt:
-        model: "llava-llama3:8b-2"
-        properties:
-          - name: object_2_present
-            prompt: Analyze the image for presence of object 2
-            type: boolean
+      llm_prompts:
+        - model: "llava-llama3:8b-2"
+          properties:
+            - name: object_2_present
+              prompt: Analyze the image for presence of object 2
+              type: boolean
       periodic_update_sec: 15
 """
             )
@@ -68,37 +68,41 @@ frigate:
                     cameras = listOf(
                         FrigateCameraConfig(
                             name = "my_cam_1",
-                            llmPrompt = FrigateCameraLLMPromptConfig(
-                                model = "llava-llama3:8b-1",
-                                properties = listOf(
-                                    FrigateCameraLLMPromptPropertyConfig(
-                                        name = "object_1_present",
-                                        prompt = "Analyze the image for presence of object 1",
-                                        type = Boolean,
-                                    )
+                            llmPrompts = listOf(
+                                FrigateCameraLLMPromptConfig(
+                                    model = "llava-llama3:8b-1",
+                                    properties = listOf(
+                                        FrigateCameraLLMPromptPropertyConfig(
+                                            name = "object_1_present",
+                                            prompt = "Analyze the image for presence of object 1",
+                                            type = BOOLEAN,
+                                        )
+                                    ),
+                                    motionUpdates = FrigateCameraMotionConfig(
+                                        enabled = true,
+                                    ),
                                 )
                             ),
                             periodicUpdateSec = 45,
-                            motionUpdates = FrigateCameraMotionConfig(
-                                enabled = true,
-                            ),
                         ),
                         FrigateCameraConfig(
                             name = "my_cam_2",
-                            llmPrompt = FrigateCameraLLMPromptConfig(
-                                model = "llava-llama3:8b-2",
-                                properties = listOf(
-                                    FrigateCameraLLMPromptPropertyConfig(
-                                        name = "object_2_present",
-                                        prompt = "Analyze the image for presence of object 2",
-                                        type = Boolean,
-                                    )
+                            llmPrompts = listOf(
+                                FrigateCameraLLMPromptConfig(
+                                    model = "llava-llama3:8b-2",
+                                    properties = listOf(
+                                        FrigateCameraLLMPromptPropertyConfig(
+                                            name = "object_2_present",
+                                            prompt = "Analyze the image for presence of object 2",
+                                            type = BOOLEAN,
+                                        )
+                                    ),
+                                    motionUpdates = FrigateCameraMotionConfig(
+                                        enabled = true,
+                                    ),
                                 )
                             ),
                             periodicUpdateSec = 15,
-                            motionUpdates = FrigateCameraMotionConfig(
-                                enabled = true,
-                            )
                         )
                     )
                 )

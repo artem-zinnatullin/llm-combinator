@@ -17,6 +17,9 @@ data class FrigateCameraLLMPromptPropertyConfig(
     @Serializable
     enum class PropertyType {
         @SerialName("boolean")
-        Boolean,
+        BOOLEAN,
+
+        @SerialName("string")
+        STRING,
     }
 }

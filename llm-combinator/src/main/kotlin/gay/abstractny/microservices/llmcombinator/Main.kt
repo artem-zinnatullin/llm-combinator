@@ -23,9 +23,11 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.oshai.kotlinlogging.Level
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
+import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.File
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
     MainCommand().main(args)
@@ -58,6 +60,14 @@ class MainCommand : CliktCommand(help = "Run the main code") {
     override fun run() {
         val logger = KotlinLogging.logger("main")
 
+        RxJavaPlugins.setErrorHandler { throwable ->
+            logger.error(throwable) { "Unhandled RxJava exception, crashing the program." }
+            // Give a bit of time to flush the logs.
+            Thread.sleep(1000)
+            exitProcess(2)
+        }
+
+
         logger.info { "Parsed configuration: $yamlConfig" }
 
         val frigateServers = yamlConfig.frigate.servers.map { FrigateServer(it.url.toHttpUrl()) }.toSet()
@@ -70,7 +80,13 @@ class MainCommand : CliktCommand(help = "Run the main code") {
                 mqttPassword = mqttPassword!!
             )
         val ollamaService = OllamaService(yamlConfig.ollama.url.toHttpUrl(), Level.INFO)
-        val llmCamerasService = LLMCamerasService(frigateService, frigateServers, frigateMqttService, ollamaService, yamlConfig.frigate.cameras)
+        val llmCamerasService = LLMCamerasService(
+            frigateService,
+            frigateServers,
+            frigateMqttService,
+            ollamaService,
+            yamlConfig.frigate.cameras
+        )
         val homeAssistantHttpService =
             HomeAssistantHttpService(
                 yamlConfig.homeAssistant.url.toHttpUrl(),
