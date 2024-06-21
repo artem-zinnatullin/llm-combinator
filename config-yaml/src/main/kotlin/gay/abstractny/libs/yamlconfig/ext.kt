@@ -4,6 +4,7 @@ import com.charleskorn.kaml.Yaml
 import kotlinx.serialization.decodeFromString
 import org.intellij.lang.annotations.Language
 
+@Suppress("TooGenericExceptionCaught")
 fun parseYamlConfig(@Language("yaml") content: String): YamlConfig {
     return try {
         Yaml
@@ -17,6 +18,7 @@ fun parseYamlConfig(@Language("yaml") content: String): YamlConfig {
     }
 }
 
+@Suppress("MaxLineLength")
 private fun applyFrigateDefaultLLMModel(originalConfig: YamlConfig): YamlConfig {
     val updatedCameras = originalConfig
         .frigate

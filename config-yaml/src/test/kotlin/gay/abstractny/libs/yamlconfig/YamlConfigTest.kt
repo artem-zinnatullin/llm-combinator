@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 class YamlConfigTest {
 
     @Test
+    @Suppress("LongMethod")
     fun `parses good YAML config without optional fields`() {
         assertThat(
             parseYamlConfig(
