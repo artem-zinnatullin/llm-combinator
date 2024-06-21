@@ -42,16 +42,16 @@ private fun getBooleanProperties(promptConfig: FrigateCameraLLMPromptConfig): Se
 
 // TODO add caching.
 // TODO move out of Cameras module, this is HomeAssistant specific.
-private fun getBinarySensorDeviceName(
+internal fun getBinarySensorDeviceName(
     camera: FrigateCamera,
     binarySensorProperty: FrigateCameraLLMPromptPropertyConfig
 ): String {
-    return "${camera.name}_llm_${binarySensorProperty.name}}"
+    return "${camera.name}_llm_${binarySensorProperty.name}"
 }
 
 // TODO add caching.
 // TODO move out of Cameras module, this is HomeAssistant specific.
-private fun getBinarySensorFriendlyName(
+internal fun getBinarySensorFriendlyName(
     camera: FrigateCamera,
     binarySensorProperty: FrigateCameraLLMPromptPropertyConfig
 ): String {

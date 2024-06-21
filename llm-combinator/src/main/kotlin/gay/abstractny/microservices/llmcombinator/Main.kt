@@ -87,12 +87,10 @@ class MainCommand : CliktCommand(help = "Run the main code") {
             ollamaService,
             yamlConfig.frigate.cameras
         )
-        val homeAssistantHttpService =
-            HomeAssistantHttpService(
-                yamlConfig.homeAssistant.url.toHttpUrl(),
-                token = homeAssistantToken!!,
-                debug = false
-            )
+        val homeAssistantHttpService = HomeAssistantHttpService(
+            yamlConfig.homeAssistant.url.toHttpUrl(),
+            token = homeAssistantToken!!
+        )
 
         llmCamerasService
             .camerasUpdates()
