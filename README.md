@@ -11,8 +11,8 @@ LLM Combinator exports real-time results of multi-modal Ollama executions with i
 - [x] Extensive YAML configuration file
 - [x] Multi-prompting for a single Camera
 - [x] Lossy LLM response decoding: "yes" == true, etc
+- [x] Docker image (amd64 & arm64) published to [ghcr.io](https://github.com/artem-zinnatullin/llm-combinator/pkgs/container/artem-zinnatullin%2Fllm-combinator) for each commit
 - [] OpenAI-compatible APIs support
-- [] Docker image published to GitHub Container Registry
 - [] Authentication with all network components
 - [] Recursive inclusion of HomeAssistant sensors into model prompt
 - [] Extensive logging configuration
