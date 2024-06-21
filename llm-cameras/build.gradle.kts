@@ -16,3 +16,17 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(kotlin("reflect"))
 }
+
+dependencies {
+    testImplementation(platform(libs.junit.bom))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation(libs.assertj)
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
+}

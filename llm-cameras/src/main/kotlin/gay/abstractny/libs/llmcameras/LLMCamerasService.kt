@@ -9,10 +9,12 @@ import gay.abstractny.libs.frigate_mqtt.FrigateMqttService
 import gay.abstractny.libs.ollama.OllamaGenerateRequest
 import gay.abstractny.libs.ollama.OllamaService
 import gay.abstractny.libs.yamlconfig.FrigateCameraConfig
+import gay.abstractny.libs.yamlconfig.FrigateCameraLLMPromptConfig
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit.SECONDS
 import kotlin.io.encoding.Base64
@@ -26,6 +28,8 @@ class LLMCamerasService(
     private val ollamaService: OllamaService,
     private val frigateCamerasConfig: List<FrigateCameraConfig>,
 ) {
+
+    private val logger = KotlinLogging.logger("LLMCamerasService")
 
     private val frigateCameras = frigateService
         .cameras(frigateServers)
@@ -44,6 +48,9 @@ class LLMCamerasService(
             }
             .toFlowable()
             .flatMap { camera ->
+                Flowable.merge(frigateCameraConfig.llmPrompts.map { Flowable.fromCallable { camera to it } })
+            }
+            .flatMap { (camera, llmPromptConfig) ->
                 val signals = mutableListOf<Flowable<*>>()
 
                 signals += Flowable.interval(
@@ -52,22 +59,19 @@ class LLMCamerasService(
                     SECONDS
                 )
 
-                if (frigateCameraConfig.motionUpdates.enabled) {
+                if (llmPromptConfig.motionUpdates.enabled) {
                     signals += cameraMotionUpdates(camera)
                 }
 
                 Flowable
                     .merge(signals)
-                    .map { camera }
-            }
-            .flatMapSingle { camera ->
-                cameraQuery(camera, frigateCameraConfig)
+                    .flatMapSingle { cameraQuery(camera, llmPromptConfig) }
             }
     }
 
     private fun cameraQuery(
         camera: FrigateCamera,
-        frigateCameraConfig: FrigateCameraConfig,
+        llmPromptConfig: FrigateCameraLLMPromptConfig,
     ): Single<Set<BinarySensor>> {
         return frigateService
             .latestJpg(camera)
@@ -76,15 +80,15 @@ class LLMCamerasService(
                 ollamaService
                     .generate(
                         OllamaGenerateRequest(
-                            model = frigateCameraConfig.llmPrompt.model,
-                            prompt = preparePrompt(frigateCameraConfig),
+                            model = llmPromptConfig.model,
+                            prompt = preparePrompt(llmPromptConfig),
                             imagesBase64 = listOf(jpegBase64),
                             format = "json",
                         )
                     )
-                    .map { Json.decodeFromString<JsonElement>(it.response) }
-                    .doOnSuccess { println("$it") }
-                    .map { cameraLLMResponse -> cameraResponseToSensors(camera, cameraLLMResponse) }
+                    .map { Json.decodeFromString<JsonObject>(it.response) }
+                    .doOnSuccess { logger.debug { "cameraQuery response: $it" } }
+                    .map { cameraLLMResponse -> cameraResponseToSensors(camera, llmPromptConfig, cameraLLMResponse) }
             }
     }
 
@@ -101,20 +105,19 @@ class LLMCamerasService(
             }
     }
 
-    private val cachePrompt = ConcurrentHashMap<FrigateCameraConfig, String>()
+    private val cachePrompt = ConcurrentHashMap<FrigateCameraLLMPromptConfig, String>()
 
-    private fun preparePrompt(frigateCameraConfig: FrigateCameraConfig): String {
-        return cachePrompt.getOrPut(frigateCameraConfig) { preparePromptImpl(frigateCameraConfig) }
+    private fun preparePrompt(llmPromptConfig: FrigateCameraLLMPromptConfig): String {
+        return cachePrompt.getOrPut(llmPromptConfig) { preparePromptImpl(llmPromptConfig) }
     }
 
-    private fun preparePromptImpl(frigateCameraConfig: FrigateCameraConfig): String {
-        // Properties must be put in exact order they're declared otherwise prompt might become unstable.
-        return frigateCameraConfig
-            .llmPrompt
+    private fun preparePromptImpl(llmPromptConfig: FrigateCameraLLMPromptConfig): String {
+        // Properties must be put in exact order they're declared otherwise prompt will produce unexpected result.
+        return llmPromptConfig
             .properties
             .joinToString(
-                prefix = frigateCameraConfig.llmPrompt.prefix,
-                postfix = frigateCameraConfig.llmPrompt.postfix,
+                prefix = llmPromptConfig.prefix,
+                postfix = llmPromptConfig.postfix,
                 separator = ", ",
             ) { property ->
                 "\"${property.name}\": \"(${property.type}) ${property.prompt}\""

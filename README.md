@@ -9,10 +9,11 @@ LLM Combinator exports real-time results of multi-modal Ollama executions with i
 - [x] Frigate reactive motion updates over MQTT
 - [x] Real-time export of Ollama response fields as HomeAssistant binary sensors
 - [x] Extensive YAML configuration file
+- [x] Multi-prompting for a single Camera
+- [x] Lossy LLM response decoding: "yes" == true, etc
 - [] Docker image published to GitHub Container Registry
 - [] Authentication with all network components
 - [] Recursive inclusion of HomeAssistant sensors into model prompt
-- [] LLM-based automations
 - [] Extensive logging configuration
 
 # Local Development

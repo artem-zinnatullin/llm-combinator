@@ -8,14 +8,9 @@ data class FrigateCameraConfig(
     @SerialName("name")
     val name: String,
 
-    @SerialName("llm_prompt")
-    val llmPrompt: FrigateCameraLLMPromptConfig,
+    @SerialName("llm_prompts")
+    val llmPrompts: List<FrigateCameraLLMPromptConfig>,
 
     @SerialName("periodic_update_sec")
     val periodicUpdateSec: Int,
-
-    @SerialName("motion_updates")
-    val motionUpdates: FrigateCameraMotionConfig = FrigateCameraMotionConfig(
-        enabled = true,
-    ),
 )

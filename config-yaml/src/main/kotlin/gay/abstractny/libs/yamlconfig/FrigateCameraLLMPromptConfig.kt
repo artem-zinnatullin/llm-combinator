@@ -20,4 +20,12 @@ data class FrigateCameraLLMPromptConfig(
 
     @SerialName("properties")
     val properties: List<FrigateCameraLLMPromptPropertyConfig>,
+
+    @SerialName("periodic_update_sec")
+    val periodicUpdateSec: Int = -1,
+
+    @SerialName("motion_updates")
+    val motionUpdates: FrigateCameraMotionConfig = FrigateCameraMotionConfig(
+        enabled = true,
+    ),
 )
