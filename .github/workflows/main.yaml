@@ -54,6 +54,10 @@ jobs:
         with:
           strip_tag_prefix: ''
 
+      - name: Figure out Short Commit Sha
+        uses: benjlevesque/short-sha@95aa1081125b46e95966cef05d7ef9b0e7e28557
+        id: short-sha
+
       - name: Docker Log in to GitHub Container Registry
         uses: docker/login-action@v3
         timeout-minutes: 1
@@ -75,12 +79,12 @@ jobs:
           if [[ "${{ steps.branch-names.outputs.is_tag }}" == "true" ]]; then
             DOCKER_TAG="${{ steps.branch-names.outputs.tag }}"
           elif [[ "${{ steps.branch-names.outputs.is_default }}" == "true" ]]; then
-            DOCKER_TAG="${{ steps.branch-names.outputs.current_branch }}-${{ github.sha }}"
+            DOCKER_TAG="${{ steps.branch-names.outputs.current_branch }}-${{ steps.short-sha.outputs.sha }}"
           else
-            DOCKER_TAG="${{ github.sha }}"
+            DOCKER_TAG="${{ steps.short-sha.outputs.sha }}"
           fi
           echo "DOCKER_TAG=$DOCKER_TAG"
-          echo "::set-output name=docker_tag::$DOCKER_TAG"
+          echo "docker_tag=$DOCKER_TAG" >> $GITHUB_OUTPUT
 
       - name: Build and Push Docker Image to ghcr.io
         timeout-minutes: 5
