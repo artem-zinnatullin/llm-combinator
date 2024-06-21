@@ -80,12 +80,11 @@ jobs:
           echo "DOCKER_TAG=$DOCKER_TAG"
           echo "::set-output name=docker_tag::$DOCKER_TAG"
 
-      - name: Build and Maybe Push Docker Image to ghcr.io
+      - name: Build and Push Docker Image to ghcr.io
         timeout-minutes: 5
         uses: docker/build-push-action@v6
         with:
           context: ./llm-combinator/
-          #push: ${{ github.ref == 'refs/heads/main' }}
           push: true
           tags: ghcr.io/${{ github.actor }}/${{ github.repository }}:${{ steps.docker_tag.outputs.docker_tag }}
           platforms: linux/amd64,linux/arm64
