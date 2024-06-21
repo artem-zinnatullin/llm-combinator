@@ -48,6 +48,12 @@ jobs:
         timeout-minutes: 1
         run: ./gradlew detekt
 
+      - name: Figure out Branches and Tags
+        uses: tj-actions/branch-names@a449ab03aca1a352deb0e2d125961acfed811ec9
+        id: branch-names
+        with:
+          strip_tag_prefix: ''
+
       - name: Docker Log in to GitHub Container Registry
         uses: docker/login-action@v3
         timeout-minutes: 1
@@ -63,13 +69,13 @@ jobs:
           # We're making a multi-architecture image.
           platforms: linux/amd64,linux/arm64
 
-      - name: Build and push
+      - name: Build and Maybe Push Docker Image to ghcr.io
         timeout-minutes: 5
         uses: docker/build-push-action@v6
         with:
           context: ./llm-combinator/
           #push: ${{ github.ref == 'refs/heads/main' }}
           push: true
-          tags: ghcr.io/${{ github.actor }}/${{ github.repository }}:${{ github.sha }}
+          tags: ghcr.io/${{ github.actor }}/${{ github.repository }}:${{ steps.branch-names.outputs.current_branch }}-${{ github.sha }}
           platforms: linux/amd64,linux/arm64
-  
+
