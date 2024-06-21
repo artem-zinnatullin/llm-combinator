@@ -11,6 +11,7 @@ LLM Combinator exports real-time results of multi-modal Ollama executions with i
 - [x] Extensive YAML configuration file
 - [x] Multi-prompting for a single Camera
 - [x] Lossy LLM response decoding: "yes" == true, etc
+- [] OpenAI-compatible APIs support
 - [] Docker image published to GitHub Container Registry
 - [] Authentication with all network components
 - [] Recursive inclusion of HomeAssistant sensors into model prompt

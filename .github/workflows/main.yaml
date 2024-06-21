@@ -10,6 +10,9 @@ jobs:
   build:
     timeout-minutes: 15
     runs-on: ubuntu-latest
+    permissions:
+      # Allow pushing Docker images to GitHub Container Registry.
+      packages: write
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -34,13 +37,55 @@ jobs:
 
       - name: Resolve Gradle Dependencies
         if: steps.gradle_deps_cache.outputs.cache-hit != 'true'
-        timeout-minutes: 5
+        timeout-minutes: 3
         run: ./gradlew --write-verification-metadata sha256 help --dry-run
 
       - name: Compile & Run Unit Tests
-        timeout-minutes: 10
+        timeout-minutes: 3
         run: ./gradlew build
 
       - name: Detekt
-        timeout-minutes: 5
+        timeout-minutes: 1
         run: ./gradlew detekt
+
+      - name: Figure out Branches and Tags
+        uses: tj-actions/branch-names@a449ab03aca1a352deb0e2d125961acfed811ec9
+        id: branch-names
+        with:
+          strip_tag_prefix: ''
+
+      - name: Docker Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        timeout-minutes: 1
+        with:
+          registry: https://ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        timeout-minutes: 1
+        with:
+          # We're making a multi-architecture image.
+          platforms: linux/amd64,linux/arm64
+
+      - name: Determine Docker Image Tag
+        id: docker_tag
+        run: |
+          if [[ "${{ steps.branch-names.outputs.is_tag }}" == "true" ]]; then
+            DOCKER_TAG="${{ steps.branch-names.outputs.tag }}"
+          else
+            DOCKER_TAG="${{ github.sha }}"
+          fi
+          echo "DOCKER_TAG=$DOCKER_TAG"
+          echo "::set-output name=docker_tag::$DOCKER_TAG"
+
+      - name: Build and Push Docker Image to ghcr.io
+        timeout-minutes: 5
+        uses: docker/build-push-action@v6
+        with:
+          context: ./llm-combinator/
+          push: true
+          tags: ghcr.io/${{ github.actor }}/${{ github.repository }}:${{ steps.docker_tag.outputs.docker_tag }}
+          platforms: linux/amd64,linux/arm64
+
