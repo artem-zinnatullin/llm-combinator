@@ -1,5 +1,6 @@
 package gay.abstractny.libs.homeassistant_http
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.serialization.json.Json
@@ -12,7 +13,9 @@ import retrofit2.adapter.rxjava3.RxJava3CallAdapterFactory
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit.SECONDS
 
-class HomeAssistantHttpService(url: HttpUrl, token: String, debug: Boolean) {
+class HomeAssistantHttpService(url: HttpUrl, token: String) {
+
+    private val logger = KotlinLogging.logger("HomeAssistantHttpService")
 
     private val okHttpClient = OkHttpClient
         .Builder()
@@ -30,11 +33,11 @@ class HomeAssistantHttpService(url: HttpUrl, token: String, debug: Boolean) {
             chain.proceed(newRequest)
         }
         .apply {
-            if (debug) {
-                addInterceptor(HttpLoggingInterceptor().apply {
-                    level = HttpLoggingInterceptor.Level.BODY
-                })
-            }
+            addInterceptor(HttpLoggingInterceptor {
+                logger.debug { it }
+            }.apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            })
         }
         .build()
 
@@ -52,28 +55,37 @@ class HomeAssistantHttpService(url: HttpUrl, token: String, debug: Boolean) {
         .create(HomeAssistantApi::class.java)
 
     fun createOrUpdateBinarySensor(deviceName: String, friendlyName: String, state: Boolean): Completable {
-        return homeAssistantApi.createOrUpdateBinarySensor(
-            deviceName, HomeAssistantBinarySensorRequest(
-                state = if (state) "on" else "off",
-                attributes = HomeAssistantBinarySensorRequest.Attributes(
-                    friendlyName = friendlyName
+        return homeAssistantApi
+            .createOrUpdateBinarySensor(
+                deviceName, HomeAssistantBinarySensorRequest(
+                    state = if (state) "on" else "off",
+                    attributes = HomeAssistantBinarySensorRequest.Attributes(
+                        friendlyName = friendlyName
+                    )
                 )
             )
-        )
+            .doOnError { error -> throw IllegalStateException("Error in HomeAssistantHttpService.createOrUpdateBinarySensor for deviceName='$deviceName', friendlyName='$friendlyName', state='$state'") }
     }
 
     fun deleteBinarySensor(deviceName: String): Completable {
         return homeAssistantApi.deleteBinarySensor(deviceName)
     }
 
-    fun createOrUpdateSensor(deviceName: String, friendlyName: String, unitOfMeasurement: String, state: String): Completable {
-        return homeAssistantApi.createOrUpdateSensor(deviceName, HomeAssistantSensorRequest(
-            state = state,
-            attributes = HomeAssistantSensorRequest.Attributes(
-                friendlyName = friendlyName,
-                unitOfMeasurement = unitOfMeasurement,
+    fun createOrUpdateSensor(
+        deviceName: String,
+        friendlyName: String,
+        unitOfMeasurement: String,
+        state: String
+    ): Completable {
+        return homeAssistantApi.createOrUpdateSensor(
+            deviceName, HomeAssistantSensorRequest(
+                state = state,
+                attributes = HomeAssistantSensorRequest.Attributes(
+                    friendlyName = friendlyName,
+                    unitOfMeasurement = unitOfMeasurement,
+                )
             )
-        ))
+        )
     }
 
     fun deleteSensor(deviceName: String): Completable {
