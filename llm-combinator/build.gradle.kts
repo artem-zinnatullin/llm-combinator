@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm")
-    id("com.bmuschko.docker-java-application") version libs.versions.dockerPlugin
     id("application")
+    // Shadow plugin allows building -all jar with all dependencies for easy distribution.
     id("com.github.johnrengelman.shadow") version libs.versions.shadow
 }
 
@@ -54,31 +54,3 @@ tasks {
 val shadowDist: Configuration by configurations.consumable("shadowDist")
 artifacts.add(shadowDist.name, tasks.shadowDistZip)
 
-val dockerRegistry = "TODO"
-val dockerImage = "TODO"
-val dockerImageVersion = "TODO"
-
-docker {
-    javaApplication {
-        baseImage.set("openjdk:21-slim-bullseye")
-        maintainer.set("Artem Zinnatullin")
-        ports.set(listOf())
-        images.set(setOf("$dockerRegistry/$dockerImage:$dockerImageVersion"))
-        jvmArgs.set(listOf("-Xmx512m", "-Xmx896m"))
-    }
-}
-
-task("dockerBuildxAndPushImage", type = Exec::class) {
-    group = "docker"
-    dependsOn("dockerCreateDockerfile")
-    workingDir("build/docker")
-    executable("docker")
-
-    args(listOf(
-        "buildx",
-        "build",
-        "--platform", "linux/amd64,linux/arm64",
-        "-t", "$dockerRegistry/$dockerImage:$dockerImageVersion",
-        "--push", "."
-    ))
-}
