@@ -17,6 +17,7 @@ slf4j = "2.0.13"
 dockerPlugin = "9.4.0"
 kaml = "0.60.0"
 assertJ = "3.26.0"
+detekt = "1.23.6"
 
 [libraries]
 rxjava = { module = "io.reactivex.rxjava3:rxjava", version.ref = "rxjava" }

@@ -4,6 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+@Suppress("ForbiddenComment")
 data class YamlConfig(
     @SerialName("ollama")
     val ollama: OllamaConfig,

@@ -12,10 +12,12 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit.SECONDS
 
+@Suppress("MagicNumber")
 class FrigateService(debug: Boolean) {
 
     private val okHttpClient = OkHttpClient
         .Builder()
+        // TODO allow configuring these timeuts in YAML.
         .connectTimeout(5, SECONDS)
         .readTimeout(14, SECONDS)
         .writeTimeout(5, SECONDS)

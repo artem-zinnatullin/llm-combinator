@@ -40,3 +40,7 @@ jobs:
       - name: Compile & Run Unit Tests
         timeout-minutes: 10
         run: ./gradlew build
+
+      - name: Detekt
+        timeout-minutes: 5
+        run: ./gradlew detekt
