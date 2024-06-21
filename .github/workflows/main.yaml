@@ -70,6 +70,6 @@ jobs:
           context: ./llm-combinator/
           #push: ${{ github.ref == 'refs/heads/main' }}
           push: true
-          tags: artem-zinnatullin/llm-combinator:${{ github.sha }}
+          tags: ghcr.io/${{ github.actor }}/${{ github.repository }}:${{ github.sha }}
           platforms: linux/amd64,linux/arm64
-
+  
