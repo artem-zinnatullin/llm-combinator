@@ -74,6 +74,8 @@ jobs:
         run: |
           if [[ "${{ steps.branch-names.outputs.is_tag }}" == "true" ]]; then
             DOCKER_TAG="${{ steps.branch-names.outputs.tag }}"
+          elif [[ "${{ steps.branch-names.outputs.is_default }}" == "true" ]]; then
+            DOCKER_TAG="${{ steps.branch-names.outputs.current_branch }}-${{ github.sha }}"
           else
             DOCKER_TAG="${{ github.sha }}"
           fi
