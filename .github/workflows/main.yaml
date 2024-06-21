@@ -67,7 +67,7 @@ jobs:
         timeout-minutes: 5
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./llm-combinator/
           #push: ${{ github.ref == 'refs/heads/main' }}
           push: true
           tags: artem-zinnatullin/llm-combinator:${{ github.sha }}
