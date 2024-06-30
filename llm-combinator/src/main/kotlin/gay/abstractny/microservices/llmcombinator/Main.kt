@@ -96,9 +96,12 @@ class MainCommand : CliktCommand(help = "Run the main code") {
         )
 
 //        homeAssistantWebSocketService
-//            .authenticatedWebSocket
+//            .subscribeToTrigger(Trigger(
+//                platform = "state",
+//                entityId = "binary_sensor.office_motion_sensor_occupancy"
+//            ))
 //            .doOnNext {
-//                logger.info { "websocket onNext: $it" }
+//                logger.info { "websocket subscribeToTrigger(): $it" }
 //            }
 //            .blockingSubscribe()
 
