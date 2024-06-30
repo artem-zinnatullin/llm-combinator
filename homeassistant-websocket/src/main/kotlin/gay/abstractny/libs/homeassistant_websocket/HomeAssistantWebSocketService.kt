@@ -46,8 +46,8 @@ class HomeAssistantWebSocketService(private val homeAssistantUrl: HttpUrl, val t
     }
 
     // 1. [x] Shared() Flowable websocket
-    // 2. Authentication as part of shared WebSocket
-    // 3.
+    // 2. [x] Authentication as part of shared WebSocket
+    // 3. Allow sending messages and receiving stream of response(s)
 
     data class AuthenticatedWebSocket(
         val webSocket: WebSocket,
