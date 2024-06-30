@@ -6,24 +6,20 @@ package gay.abstractny.microservices.llmcombinator
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.parameters.options.convert
-import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
-import com.github.ajalt.clikt.parameters.options.transformAll
 import com.github.ajalt.clikt.parameters.options.validate
 import gay.abstractny.libs.frigate.FrigateServer
 import gay.abstractny.libs.frigate.FrigateService
 import gay.abstractny.libs.frigate_mqtt.FrigateMqttService
 import gay.abstractny.libs.homeassistant_http.HomeAssistantHttpService
 import gay.abstractny.libs.homeassistant_websocket.HomeAssistantWebSocketService
-import gay.abstractny.libs.llmcameras.BinarySensor
 import gay.abstractny.libs.llmcameras.LLMCamerasService
 import gay.abstractny.libs.ollama.OllamaService
 import gay.abstractny.libs.yamlconfig.parseYamlConfig
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.oshai.kotlinlogging.Level
 import io.reactivex.rxjava3.core.Completable
-import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.File
@@ -100,7 +96,7 @@ class MainCommand : CliktCommand(help = "Run the main code") {
         )
 
 //        homeAssistantWebSocketService
-//            .connect()
+//            .authenticatedWebSocket
 //            .doOnNext {
 //                logger.info { "websocket onNext: $it" }
 //            }

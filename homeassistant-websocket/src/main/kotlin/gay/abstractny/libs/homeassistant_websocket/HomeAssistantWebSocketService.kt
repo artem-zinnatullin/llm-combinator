@@ -16,10 +16,14 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okhttp3.logging.HttpLoggingInterceptor
 import java.util.concurrent.TimeUnit.SECONDS
+import java.util.concurrent.atomic.AtomicBoolean
 
 class HomeAssistantWebSocketService(private val homeAssistantUrl: HttpUrl, val token: String) {
 
-    private val logger = KotlinLogging.logger(HomeAssistantWebSocketService::class.java.simpleName)
+    companion object {
+        private val logger = KotlinLogging.logger(HomeAssistantWebSocketService::class.java.simpleName)
+        internal fun redactToken(text: String, token: String) = text.replace(token, "REDACTED_TOKEN")
+    }
 
     private val okHttpClient = OkHttpClient
         .Builder()
@@ -41,67 +45,90 @@ class HomeAssistantWebSocketService(private val homeAssistantUrl: HttpUrl, val t
         encodeDefaults = true
     }
 
-    // 1. Shared() Flowable websocket
-    // 2. Authentication as part of shared WebSocket
-    // 3.
+    // 1. [x] Shared() Flowable websocket
+    // 2. [x] Authentication as part of shared WebSocket
+    // 3. Allow sending messages and receiving stream of response(s)
 
-//    private val authenticatedWebSocket = Flowable
-//        .create<Pair<WebSocket, Any>>()
-//        .share()
+    data class AuthenticatedWebSocket(
+        val webSocket: WebSocket,
+        val message: String?,
+    )
 
-    fun connect(): Flowable<Pair<WebSocket, Any>> {
-        return Flowable
-            .create<Pair<WebSocket, String>>(
-                { source ->
+    private class LoggingWebSocket(private val actualWebSocket: WebSocket, private val token: String) :
+        WebSocket by actualWebSocket {
+        override fun send(text: String): Boolean {
+            val message = redactToken(text, token)
+            logger.info { "WebSocket -> send: $message" }
+            return actualWebSocket.send(text)
+        }
+    }
 
+    val authenticatedWebSocket: Flowable<AuthenticatedWebSocket> = Flowable
+        .create({ source ->
+            val authOk = AtomicBoolean()
 
-                    val webSocketListener = object : WebSocketListener() {
-                        override fun onOpen(webSocket: WebSocket, response: Response) {
-                            logger.info { "WebSocket: onOpen, response=$response" }
+            val webSocketListener = object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    logger.info { "WebSocket <- onOpen: response=$response" }
+                }
+
+                override fun onMessage(webSocket: WebSocket, text: String) {
+                    actualOnMessage(LoggingWebSocket(webSocket, token), redactToken(text, token))
+                }
+
+                fun actualOnMessage(webSocket: WebSocket, message: String) {
+                    logger.info { "WebSocket <- onMessage: message=$message" }
+
+                    val jsonMessage = json.decodeFromString<JsonObject>(message)
+
+                    when (jsonMessage["type"]?.jsonPrimitive?.content) {
+                        "auth_required" -> {
+                            webSocket.send(json.encodeToString(AuthRequest(accessToken = token)))
                         }
 
-                        override fun onMessage(webSocket: WebSocket, message: String) {
-                            // TODO: check if this can break the message format.
-                            val preProcessedMessage = message.replace(token, "REDACTED_TOKEN")
-                            logger.info { "WebSocket: onMessage, message=$preProcessedMessage" }
-                            source.onNext(webSocket to preProcessedMessage)
+                        "auth_ok" -> {
+                            when (authOk.compareAndSet(false, true)) {
+                                true -> source.onNext(AuthenticatedWebSocket(webSocket, null))
+                                false -> source.onError(IllegalStateException("auth_ok internal state does not match HomeAssistant response"))
+                            }
                         }
 
-                        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                            source.onError(t)
-                        }
-
-                        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                            source.onComplete()
+                        else -> {
+                            if (authOk.get()) {
+                                source.onNext(AuthenticatedWebSocket(webSocket, message))
+                            }
                         }
                     }
+                }
 
-                    val webSocket = okHttpClient.newWebSocket(
-                        Request.Builder()
-                            .url(
-                                homeAssistantUrl.newBuilder()
-                                    .addPathSegment("api")
-                                    .addPathSegment("websocket")
-                                    .build()
-                            )
-                            .build(),
-                        webSocketListener
-                    )
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    logger.error(t) { "WebSocket <- onFailure: response=$response" }
+                    source.onError(t)
+                }
 
-                    source.setCancellable { webSocket.close(1001, null) }
-                }, BackpressureStrategy.BUFFER
-            )
-            .map { (ws, message) -> ws to json.decodeFromString<JsonObject>(message) }
-            .doOnNext { (ws, message) ->
-                if (message["type"]?.jsonPrimitive?.content == "auth_required") {
-                    ws.send(json.encodeToString(AuthRequest(accessToken = token)))
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                    logger.info { "WebSocket <- onClosed: code=$code, reason=$reason" }
+                    source.onComplete()
                 }
             }
-            .map { it as Pair<WebSocket, Any> }
-    }
 
-    fun binarySensorUpdates(sensorName: String): Flowable<Boolean> {
-        TODO()
-    }
+            logger.info { "WebSocket -> newWebSocket" }
+
+            val webSocket = okHttpClient.newWebSocket(
+                Request.Builder()
+                    .url(
+                        homeAssistantUrl.newBuilder()
+                            .addPathSegment("api")
+                            .addPathSegment("websocket")
+                            .build()
+                    )
+                    .build(),
+                webSocketListener
+            )
+
+            source.setCancellable { webSocket.close(1001, null) }
+        }, BackpressureStrategy.BUFFER)
+        .share()
+
 }
 
