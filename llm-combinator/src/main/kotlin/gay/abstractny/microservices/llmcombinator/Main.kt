@@ -15,6 +15,7 @@ import gay.abstractny.libs.frigate.FrigateServer
 import gay.abstractny.libs.frigate.FrigateService
 import gay.abstractny.libs.frigate_mqtt.FrigateMqttService
 import gay.abstractny.libs.homeassistant_http.HomeAssistantHttpService
+import gay.abstractny.libs.homeassistant_websocket.HomeAssistantWebSocketService
 import gay.abstractny.libs.llmcameras.BinarySensor
 import gay.abstractny.libs.llmcameras.LLMCamerasService
 import gay.abstractny.libs.ollama.OllamaService
@@ -87,10 +88,23 @@ class MainCommand : CliktCommand(help = "Run the main code") {
             ollamaService,
             yamlConfig.frigate.cameras
         )
+        val homeAssistantUrl = yamlConfig.homeAssistant.url.toHttpUrl()
         val homeAssistantHttpService = HomeAssistantHttpService(
-            yamlConfig.homeAssistant.url.toHttpUrl(),
-            token = homeAssistantToken!!
+            homeAssistantUrl,
+            token = homeAssistantToken!!,
         )
+
+        val homeAssistantWebSocketService = HomeAssistantWebSocketService(
+            homeAssistantUrl,
+            token = homeAssistantToken!!,
+        )
+
+//        homeAssistantWebSocketService
+//            .connect()
+//            .doOnNext {
+//                logger.info { "websocket onNext: $it" }
+//            }
+//            .blockingSubscribe()
 
         llmCamerasService
             .camerasUpdates()

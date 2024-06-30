@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":frigate-http"))
     implementation(project(":frigate-mqtt"))
     implementation(project(":homeassistant-http"))
+    implementation(project(":homeassistant-websocket"))
     implementation(project(":llm-cameras"))
     implementation(project(":ollama-http"))
 }
