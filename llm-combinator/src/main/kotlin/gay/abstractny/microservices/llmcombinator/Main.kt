@@ -99,12 +99,12 @@ class MainCommand : CliktCommand(help = "Run the main code") {
             token = homeAssistantToken!!,
         )
 
-//        homeAssistantWebSocketService
-//            .connect()
-//            .doOnNext {
-//                logger.info { "websocket onNext: $it" }
-//            }
-//            .blockingSubscribe()
+        homeAssistantWebSocketService
+            .authenticatedWebSocket
+            .doOnNext {
+                logger.info { "websocket onNext: $it" }
+            }
+            .blockingSubscribe()
 
         llmCamerasService
             .camerasUpdates()
