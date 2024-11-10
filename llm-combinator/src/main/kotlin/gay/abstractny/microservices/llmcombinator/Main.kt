@@ -76,7 +76,14 @@ class MainCommand : CliktCommand(help = "Run the main code") {
                 mqttUsername = mqttUsername!!,
                 mqttPassword = mqttPassword!!
             )
-        val ollamaService = OllamaService(yamlConfig.ollama.url.toHttpUrl(), Level.INFO)
+        val ollamaService = OllamaService(
+            yamlConfig.ollama.url.toHttpUrl(),
+            socketConnectTimeoutMs = yamlConfig.ollama.socketConnectTimeoutMs,
+            socketReadTimeoutMs = yamlConfig.ollama.socketReadTimeoutMs,
+            socketWriteTimeoutMs = yamlConfig.ollama.socketWriteTimeoutMs,
+            callTimeoutMs = yamlConfig.ollama.callTimeoutMs,
+            Level.INFO
+        )
         val llmCamerasService = LLMCamerasService(
             frigateService,
             frigateServers,

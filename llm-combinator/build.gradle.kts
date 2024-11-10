@@ -22,6 +22,7 @@ dependencies {
     implementation(project(":homeassistant-websocket"))
     implementation(project(":llm-cameras"))
     implementation(project(":ollama-http"))
+    implementation(libs.kotlinx.serialization.json)
 }
 
 application {

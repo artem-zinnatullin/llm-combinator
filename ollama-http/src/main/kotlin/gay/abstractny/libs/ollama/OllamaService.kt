@@ -12,18 +12,25 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava3.RxJava3CallAdapterFactory
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import java.util.concurrent.TimeUnit.SECONDS
+import java.util.concurrent.TimeUnit.MILLISECONDS
 
-class OllamaService(url: HttpUrl, private val loggingLevel: Level) {
+class OllamaService(
+    url: HttpUrl,
+    socketConnectTimeoutMs: Long,
+    socketReadTimeoutMs: Long,
+    socketWriteTimeoutMs: Long,
+    callTimeoutMs: Long,
+    private val loggingLevel: Level
+) {
 
     private val logger = KotlinLogging.logger("Ollama")
 
     private val okHttpClient = OkHttpClient
         .Builder()
-        .connectTimeout(5, SECONDS)
-        .readTimeout(14, SECONDS)
-        .writeTimeout(5, SECONDS)
-        .callTimeout(15, SECONDS)
+        .connectTimeout(socketConnectTimeoutMs, MILLISECONDS)
+        .readTimeout(socketReadTimeoutMs, MILLISECONDS)
+        .writeTimeout(socketWriteTimeoutMs, MILLISECONDS)
+        .callTimeout(callTimeoutMs, MILLISECONDS)
         .apply {
             if (loggingLevel.toInt() <= Level.TRACE.toInt()) {
                 addInterceptor(HttpLoggingInterceptor { logger.trace { it } }.apply {
