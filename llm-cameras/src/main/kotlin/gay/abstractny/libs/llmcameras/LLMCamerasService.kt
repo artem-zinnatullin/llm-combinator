@@ -69,10 +69,11 @@ class LLMCamerasService(
             }
     }
 
-    private fun cameraQuery(
+    // TODO internal
+    fun cameraQueryRaw(
         camera: FrigateCamera,
         llmPromptConfig: FrigateCameraLLMPromptConfig,
-    ): Single<Set<BinarySensor>> {
+    ): Single<JsonObject> {
         return frigateService
             .latestJpg(camera)
             .map { jpegByteArray -> Base64.encode(jpegByteArray) }
@@ -84,12 +85,20 @@ class LLMCamerasService(
                             prompt = preparePrompt(llmPromptConfig),
                             imagesBase64 = listOf(jpegBase64),
                             format = "json",
+                            //options = OllamaGenerateRequest.Options(),
                         )
                     )
                     .map { Json.decodeFromString<JsonObject>(it.response) }
                     .doOnSuccess { logger.debug { "cameraQuery response: $it" } }
-                    .map { cameraLLMResponse -> cameraResponseToSensors(camera, llmPromptConfig, cameraLLMResponse) }
             }
+    }
+
+    private fun cameraQuery(
+        camera: FrigateCamera,
+        llmPromptConfig: FrigateCameraLLMPromptConfig,
+    ): Single<Set<BinarySensor>> {
+        return cameraQueryRaw(camera, llmPromptConfig)
+            .map { cameraLLMResponse -> cameraResponseToSensors(camera, llmPromptConfig, cameraLLMResponse) }
     }
 
     private fun cameraMotionUpdates(camera: FrigateCamera): Flowable<Any> {
